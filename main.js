@@ -43,6 +43,9 @@
       },
       up: function(){
         this.y -= this.speed;
+      },
+      toString: function(){
+        return "x: " + this.x + " , " + "y: " + this.y;
       }
     }
   })();
@@ -71,7 +74,8 @@
     }
 
     function draw(context, element){
-            
+        // manipulacion del canvas a traves de sus metodos propios que 
+        // se obtienen a traves del 'context'
         switch(element.kind){
           case "rectangle":
             context.fillRect(element.x, element.y, element.width, element.height);
@@ -88,18 +92,42 @@
 // EN ESTA TERCERA SECCION ESTA EL CONTROLADOR: ofrece el orden
 // de ejecucion o punto de entrada de la aplicacion.
 
+// instancia de la entidad Board que recibe el ancho y el alto
+let board = new Board(800, 400);
+// instancia de las barras
+let bar_left = new Bar(0, 100, 40, 100, board);
+let bar_right = new Bar(760, 100, 40, 100, board);
+// se obtiene del DOM el id del canvas sobre el que se dibujar el tablero
+let canvas = document.getElementById("canvas");
+// instancia del BordView que recibe el canvas y el tablero
+let board_view = new BoardView(canvas, board);
+
+
+// Listener para detectar el uso de las teclas
+document.addEventListener("keydown", function(event){
+  
+    if(event.keyCode == 38){
+      event.preventDefault();
+      bar_right.up();
+      console.log("rightbar: " + bar_right);
+    }else if(event.keyCode == 40){
+      event.preventDefault();
+      bar_right.down();
+      console.log("rightbar: " + bar_right);
+    }else if(event.keyCode == 87){
+      // W
+      event.preventDefault();
+      bar_left.up();
+    }else if(event.keyCode == 83){
+      // S
+      event.preventDefault();
+      bar_left.down();
+    }
+});
+
 window.addEventListener("load", controller);
 
 function controller(){
-    // instancia de la entidad Board que recibe el ancho y el alto
-    let board = new Board(800, 400);
-    // instancia de las barras
-    let bar_left = new Bar(0, 100, 40, 100, board);
-    let bar_right = new Bar(760, 100, 40, 100, board);
-    // se obtiene del DOM el id del canvas sobre el que se dibujar el tablero
-    let canvas = document.getElementById("canvas");
-    // instancia del BordView que recibe el canvas y el tablero
-    let board_view = new BoardView(canvas, board);
     // dibuja el tablero con el metodo draw() propio de la vista
     board_view.draw();
-  }
+}
