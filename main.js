@@ -6,49 +6,92 @@
 
 (function(){
     // Definicion de clase board con atributos por defecto
-    self.Board = function(width, height){
-      this.width = width;
-      this.height = height;
-      this.playing = false;
-      this.gameOver = false;
-      this.bars = [];
-      this.ball = null;
+    self.Board = function(width, height){    
+        this.width = width;
+        this.height = height;
+        this.playing = false;
+        this.gameOver = false;
+        this.bars = [];
+        this.ball = null;
     }
   
     // Definicion de metodo get de elementos en Board usando prototype.
     self.Board.prototype = {
-      get elements(){
-        let elements = this.bars.map((bar)=>{ return bar; });
-        // elements.push(this.ball);
-        return elements;
-      }
+        get elements(){
+            let elements = this.bars.map((bar)=>{ return bar; });
+            elements.push(this.ball);
+            return elements;
+        }
     }
   })();
 
-  (function(){
+(function(){
+    // Definicion de clase Bar
     self.Bar = function(x, y, width, height, board){
-      this.x = x;
-      this.y = y;
-      this.width = width;
-      this.height = height;
-      this.board = board;
-      this.board.bars.push(this);
-      this.kind = "rectangle";
-      this.speed = 10;
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.board = board;
+        this.board.bars.push(this);
+        this.kind = "rectangle";
+        this.speed = 10;
     }
-  
+
+    // Definicion de metodos de Bar usando 'prototype'
     self.Bar.prototype = {
-      down: function(){
-        this.y += this.speed;
-      },
-      up: function(){
-        this.y -= this.speed;
-      },
-      toString: function(){
-        return "x: " + this.x + " , " + "y: " + this.y;
-      }
+        down: function(){
+            this.y += this.speed;
+        },
+        up: function(){
+            this.y -= this.speed;
+        },
+        toString: function(){
+            return "x: " + this.x + " , " + "y: " + this.y;
+            }
     }
-  })();
+})();
+
+(function(){
+    self.Ball = function(x, y, radius, board){
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.speed_x = 3;
+        this.speed_y = 0;
+        this.board = board;
+
+        board.ball = this;
+        this.kind = "circle";
+    };
+
+    self.Ball.prototype = {
+        move: function(){
+        this.x += (this.speed_x * this.direction);
+        this.y += (this.speed_y)
+        },
+        get width(){
+        return this.radius * 2;
+        },
+        get height(){
+        return this.radius * 2;
+        },
+        collision: function(bar){
+        // Reaction to bar collision
+        var relative_intersect_y = (bar.y + (bar.height/2)) - this.y;
+
+        var normalized_intersect_y = relative_intersect_y / (bar.height/2);
+
+        this.bounce_angle = normalized_intersect_y * this.max_bounce_angle;
+
+        this.speed_y = this.speed * -Math.sin(this.bounce_angle);
+        this.speed_x = this.speed * Math.cos(this.bounce_angle);
+
+        if(this.x > (this.board.width / 2)){ this.direction = -1; }
+        else{ this.direction = 1; }
+        }
+}
+})();
 
 // --------------------------------------------------------------
 // --------------------------------------------------------------
@@ -67,9 +110,19 @@
     }
 
     self.BoardView.prototype = {
+        clean: function(){
+            // Funcion del canvas para pintar un rectangulo nuevo
+            this.context.clearRect(0, 0, this.board.width, this.board.height);
+        },
         draw: function(){
+            // Funcion para dibujar los elementos en el canvas
             let elements = this.board.elements;
             elements.map(el => draw(this.context, el));
+        },
+        play: function(){
+            // Funcion que controla el flujo de pintado del canvas
+            this.clean();
+            this.draw();
         }
     }
 
@@ -77,9 +130,15 @@
         // manipulacion del canvas a traves de sus metodos propios que 
         // se obtienen a traves del 'context'
         switch(element.kind){
-          case "rectangle":
-            context.fillRect(element.x, element.y, element.width, element.height);
-            break;
+            case "rectangle":
+                context.fillRect(element.x, element.y, element.width, element.height);
+                break;
+            case "circle":
+                context.beginPath();
+                context.arc(element.x, element.y, element.radius,0,7);
+                context.fill();
+                context.closePath();
+                break;   
         }
     }
 })();
@@ -95,12 +154,14 @@
 // instancia de la entidad Board que recibe el ancho y el alto
 let board = new Board(800, 400);
 // instancia de las barras
-let bar_left = new Bar(0, 100, 40, 100, board);
-let bar_right = new Bar(760, 100, 40, 100, board);
+let bar_left = new Bar(0, 100, 20, 100, board);
+let bar_right = new Bar(780, 100, 20, 100, board);
 // se obtiene del DOM el id del canvas sobre el que se dibujar el tablero
 let canvas = document.getElementById("canvas");
 // instancia del BordView que recibe el canvas y el tablero
 let board_view = new BoardView(canvas, board);
+// instancia del una pelota con la clase Ball
+let ball = new Ball(350, 100, 10, board);
 
 
 // Listener para detectar el uso de las teclas
@@ -109,11 +170,9 @@ document.addEventListener("keydown", function(event){
     if(event.keyCode == 38){
       event.preventDefault();
       bar_right.up();
-      console.log("rightbar: " + bar_right);
     }else if(event.keyCode == 40){
       event.preventDefault();
       bar_right.down();
-      console.log("rightbar: " + bar_right);
     }else if(event.keyCode == 87){
       // W
       event.preventDefault();
@@ -125,9 +184,11 @@ document.addEventListener("keydown", function(event){
     }
 });
 
-window.addEventListener("load", controller);
+// Funcion de Html5 que hace el cambio entre frames
+window.requestAnimationFrame(controller);
 
 function controller(){
-    // dibuja el tablero con el metodo draw() propio de la vista
-    board_view.draw();
+    // metodo de la vista que da el orden de ejecucion
+    board_view.play();
+    window.requestAnimationFrame(controller);
 }
