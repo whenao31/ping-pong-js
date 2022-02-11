@@ -62,6 +62,9 @@
         this.speed_y = 0;
         this.board = board;
         this.direction = 1;
+        this.bounce_angle = 0;
+        this.max_bounce_angle = Math.PI / 12;
+        this.speed = 3;
 
         board.ball = this;
         this.kind = "circle";
@@ -131,9 +134,42 @@
             if(this.board.playing){
                 this.clean();
                 this.draw();
+                this.checkCollisions();
                 this.board.ball.move();
             }
+        },
+        checkCollisions: function(){
+            // Metodo para verificar colisiones de la bola
+            // con otros objetos del tablero
+            for(var i = this.board.bars.length - 1; i >= 0 ; i--){
+                var bar = this.board.bars[i];
+                if(hit(bar, this.board.ball)){
+                this.board.ball.collision(bar);
+                }
+            }
         }
+    }
+
+    // Funcion retorna booleano para confirmar si dos objetos se 
+    // superponen o colisionan. Cada objeto debe tener atributos:
+    // coord_x, coord_y, width, height.
+    function hit(a, b){
+        // Checks whether a collisions b
+        let hit = false;
+        // Horizontal collision
+        if((b.x + b.width >= a.x) && (b.x < a.x + a.width)){
+            // Vertical collisions
+            if((b.y + b.height >= a.y) && (b.y < a.y + a.height)){ hit = true; }
+        }
+        // Collision a to b
+        if((b.x <= a.x) && (b.x + b.width >= a.x + a.width)){
+            if((b.y <= a.y) && (b.y + b.height >= a.y + a.height)){ hit = true; }
+        }
+        // Collision b to a
+        if((a.x <= b.x) && (a.x + a.width >= b.x + b.width)){
+            if((a.y <= b.y) && (a.y + a.height >= b.y + b.height)){ hit = true; }
+        }
+        return hit;
     }
 
     function draw(context, element){
