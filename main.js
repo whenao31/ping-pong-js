@@ -12,6 +12,7 @@
         this.playing = false;
         this.gameOver = false;
         this.bars = [];
+        this.boundaries = [];
         this.ball = null;
     }
   
@@ -23,6 +24,57 @@
             return elements;
         }
     }
+  })();
+
+  (function(){
+    // Definicion de clase para controlar los borde del tablero de juego
+    self.BoardBoundary = function(side, board){
+        this.side = side;
+        this.board = board;
+        this.coordinates = getCoordinates(side, board);
+        this.x = this.coordinates.x;
+        this.y = this.coordinates.y;
+        this.width = this.coordinates.width;
+        this.height = this.coordinates.height;
+        this.board.boundaries.push(this);
+    }
+  
+    function getCoordinates(side, board){
+        // funcion para inicializar los atributos de posicionamiento
+        // de los bordes que limitan el tablero de juego
+        let coordinates;
+        if (side === "left"){
+            coordinates = {
+            x: 0,
+            y: 0,
+            width: 1,
+            height: board.height
+            }       
+        }else if(side === "right"){
+            coordinates = {
+            x: board.width,
+            y: 0,
+            width: 1,
+            height: board.height
+            }            
+        }else if(side === "top"){
+            coordinates = {
+            x: 0,
+            y: 0,
+            width: board.width,
+            height: 1
+            }            
+        }
+        else if(side === "bottom"){
+            coordinates = {
+            x: 0,
+            y: board.height - 1,
+            width: board.width,
+            height: 1
+            }            
+        }
+        return coordinates;
+    }  
   })();
 
 (function(){
@@ -61,10 +113,11 @@
         this.speed_x = 3;
         this.speed_y = 0;
         this.board = board;
-        this.direction = 1;
+        this.x_direction = 1;
+        this.y_direction = 0;
         this.bounce_angle = 0;
         this.max_bounce_angle = Math.PI / 12;
-        this.speed = 3;
+        this.speed = 5;
 
         board.ball = this;
         this.kind = "circle";
@@ -73,8 +126,8 @@
     self.Ball.prototype = {
         move: function(){
         // Metodo encargado del posicionamiento de Ball en el tablero de juego.
-        this.x += (this.speed_x * this.direction);
-        this.y += (this.speed_y)
+        this.x += (this.speed_x * this.x_direction);
+        this.y += (this.speed_y * this.y_direction);
         },
         get width(){
         return this.radius * 2;
@@ -93,12 +146,20 @@
 
         this.bounce_angle = normalized_intersect_y * this.max_bounce_angle;
 
-        this.speed_y = this.speed * -Math.sin(this.bounce_angle);
+        let sin_bounce_angle = Math.sin(this.bounce_angle);
+        this.y_direction = 1;
+  
+        this.speed_y = this.speed * -sin_bounce_angle;
         this.speed_x = this.speed * Math.cos(this.bounce_angle);
 
         // Cambia direccion de desplazamiento en el eje x
-        if(this.x > (this.board.width / 2)){ this.direction = -1; }
-        else{ this.direction = 1; }
+        if(this.x > (this.board.width / 2)){ this.x_direction = -1; }
+        else{ this.x_direction = 1; }
+        },
+        border_collision: function(boundary){
+            // funcion para cambiar la rebote de la bola
+            // el los bordes superior e inferior del tablero
+            this.y_direction = -1; 
         }
 }
 })();
@@ -147,6 +208,17 @@
                 this.board.ball.collision(bar);
                 }
             }
+
+            this.board.boundaries.map((boundary) => {
+                if(hit(boundary, this.board.ball)){
+                  if(boundary.side === "top" || boundary.side === "bottom"){
+                    this.board.ball.border_collision(boundary);
+                  } else{
+                    this.board.playing = 0;
+                    alert("GAME OVER!!. Reload to play again.");
+                  }
+                }
+            });
         }
     }
 
@@ -202,6 +274,11 @@ let board = new Board(800, 400);
 // instancia de las barras
 let bar_left = new Bar(0, 100, 20, 100, board);
 let bar_right = new Bar(780, 100, 20, 100, board);
+// instancias de los limites del tablero
+let top_boundary = new BoardBoundary("top", board);
+let bottom_boundary = new BoardBoundary("bottom", board);
+let left_boundary = new BoardBoundary("left", board);
+let right_boundary = new BoardBoundary("right", board);
 // se obtiene del DOM el id del canvas sobre el que se dibujar el tablero
 let canvas = document.getElementById("canvas");
 // instancia del BordView que recibe el canvas y el tablero
