@@ -53,6 +53,7 @@
 })();
 
 (function(){
+    // Definicion de la clase Ball
     self.Ball = function(x, y, radius, board){
         this.x = x;
         this.y = y;
@@ -60,6 +61,7 @@
         this.speed_x = 3;
         this.speed_y = 0;
         this.board = board;
+        this.direction = 1;
 
         board.ball = this;
         this.kind = "circle";
@@ -67,6 +69,7 @@
 
     self.Ball.prototype = {
         move: function(){
+        // Metodo encargado del posicionamiento de Ball en el tablero de juego.
         this.x += (this.speed_x * this.direction);
         this.y += (this.speed_y)
         },
@@ -78,6 +81,9 @@
         },
         collision: function(bar){
         // Reaction to bar collision
+        // Matematica para darle un cambio de angulo y velocidad a la bola
+        // dependiendo en que mitad de la altura de la barra haga
+        // coalicion
         var relative_intersect_y = (bar.y + (bar.height/2)) - this.y;
 
         var normalized_intersect_y = relative_intersect_y / (bar.height/2);
@@ -87,6 +93,7 @@
         this.speed_y = this.speed * -Math.sin(this.bounce_angle);
         this.speed_x = this.speed * Math.cos(this.bounce_angle);
 
+        // Cambia direccion de desplazamiento en el eje x
         if(this.x > (this.board.width / 2)){ this.direction = -1; }
         else{ this.direction = 1; }
         }
@@ -121,8 +128,11 @@
         },
         play: function(){
             // Funcion que controla el flujo de pintado del canvas
-            this.clean();
-            this.draw();
+            if(this.board.playing){
+                this.clean();
+                this.draw();
+                this.board.ball.move();
+            }
         }
     }
 
@@ -181,9 +191,14 @@ document.addEventListener("keydown", function(event){
       // S
       event.preventDefault();
       bar_left.down();
-    }
+    }else if(event.keyCode === 32){
+        event.preventDefault();
+        board.playing = !board.playing;
+      }
 });
 
+// Dibuja el tablero inicialmente
+board_view.draw();
 // Funcion de Html5 que hace el cambio entre frames
 window.requestAnimationFrame(controller);
 
